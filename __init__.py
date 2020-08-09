@@ -71,6 +71,8 @@ high_filter_description = "Values above the high value filter threshold will be 
 
 timeout_description = "0ms will disable these notifications completely"
 
+digits_description = "Number of digits to be displayed (Recommended is 2)"
+
 @cbpi.sensor
 class OneWireAdvanced(SensorActive):
     a_address = Property.Select("Address", get_sensors())
@@ -83,7 +85,7 @@ class OneWireAdvanced(SensorActive):
     f_timeout1 = Property.Number("Filtered value notification duration (ms)", True, 5000, description=timeout_description)
     f_timeout2 = Property.Number("Update error notification duration (ms)", True, 5000, description=timeout_description)
     __running = False
-
+    g_digits = Property.Select("Displayed Digits",[1,2,3], description=digits_description)
     def get_unit(self):
         return ifelse_celcius("°C", "°F")
 
@@ -104,6 +106,7 @@ class OneWireAdvanced(SensorActive):
         low_filter = float(self.d_low_filter)
         high_filter = float(self.e_high_filter)
         timeout1 = float(self.f_timeout1)
+        digits = int(self.g_digits)
         if timeout1 <= 0.0:
             notify1 = False
         else:
@@ -171,10 +174,10 @@ class OneWireAdvanced(SensorActive):
                         if low_filter < current_temp < high_filter:
                             if last_temp != None:
                                 exp_temp = current_temp*alpha + last_temp*(1.0-alpha)
-                                self.data_received(round(exp_temp, 3))
+                                self.data_received(round(exp_temp, digits))
                                 last_temp = exp_temp
                             else:
-                                self.data_received(round(current_temp, 3))
+                                self.data_received(round(current_temp, digits))
                                 last_temp = current_temp
 
                         # Outside filter limits...
@@ -182,11 +185,11 @@ class OneWireAdvanced(SensorActive):
                             # Count it
                             warn_count += 1
                             # Add to logger
-                            cbpi.app.logger.info("[%s] %s reading of %s filtered" % (waketime, address, round(current_temp, 3)))
+                            cbpi.app.logger.info("[%s] %s reading of %s filtered" % (waketime, address, round(current_temp, digits)))
 
                             # Produce a notification if requested
                             if notify1:
-                                cbpi.notify("OneWire Warning", "%s reading of %s filtered" % (address, round(current_temp, 3)), timeout=timeout1, type="warning")
+                                cbpi.notify("OneWire Warning", "%s reading of %s filtered" % (address, round(current_temp, digits)), timeout=timeout1, type="warning")
 
                 # Sleep until update required again
                 if waketime <= time.time():
